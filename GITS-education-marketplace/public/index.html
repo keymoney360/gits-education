@@ -1,6 +1,0 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GITS | Education Documents</title><link rel="stylesheet" href="style.css"></head><body>
-<header><b>GITS</b><nav><a href="/">Home</a><a href="/login.html">Login</a><a href="/register.html">Join</a><a href="/admin">Admin</a></nav></header>
-<section class="hero"><h1>Education Resources at Your Fingertips</h1><p>Buy useful educational documents and access them digitally.</p><a class="btn" href="#products">Browse Documents</a></section>
-<main><h2 id="products">Featured Documents</h2><div id="list" class="grid"></div></main><script>
-fetch("/api/products").then(r=>r.json()).then(ps=>list.innerHTML=ps.map(p=>`<article class="card"><h3>${p.name}</h3><p>${p.description}</p><strong>KSh ${p.price.toLocaleString()}</strong><br><a class="btn small" href="/login.html">Purchase</a></article>`).join(""));
-</script></body></html>
