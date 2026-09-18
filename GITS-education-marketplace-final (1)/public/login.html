@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login | GITS</title><link rel="stylesheet" href="style.css"></head>
+<body><main class="form"><h1>Login</h1><form id="loginForm"><input id="email" type="email" placeholder="Email" required><input id="password" type="password" placeholder="Password" required><button type="submit">Login</button></form><p id="message"></p><a href="/register.html">Create account</a></main>
+<script>
+const form=document.getElementById("loginForm"),emailEl=document.getElementById("email"),passwordEl=document.getElementById("password"),message=document.getElementById("message");
+form.addEventListener("submit",async e=>{e.preventDefault();message.textContent="Logging in...";try{const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:emailEl.value.trim(),password:passwordEl.value})});const x=await r.json();if(!r.ok){message.textContent=x.error||"Login failed";return}localStorage.setItem("gitsUser",x.id);location="/dashboard.html"}catch(e){message.textContent="Unable to connect to the server. Please try again."}});
+</script></body></html>

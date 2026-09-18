@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Join GITS</title><link rel="stylesheet" href="style.css"></head>
+<body><main class="form"><h1>Create GITS Account</h1><form id="registerForm">
+<input id="name" placeholder="Full name" required><input id="email" type="email" placeholder="Email" required><input id="phone" placeholder="Phone number">
+<input id="password" type="password" placeholder="Password" required><input id="refCode" placeholder="Referral code (optional)"><button type="submit">Create Account</button>
+</form><p id="message"></p><a href="/login.html">Already have an account?</a></main>
+<script>
+const form=document.getElementById("registerForm"), nameEl=document.getElementById("name"), emailEl=document.getElementById("email"), phoneEl=document.getElementById("phone"), passwordEl=document.getElementById("password"), refEl=document.getElementById("refCode"), message=document.getElementById("message");
+refEl.value=new URLSearchParams(location.search).get("ref")||"";
+form.addEventListener("submit",async e=>{e.preventDefault();message.textContent="Creating account...";
+try{const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:nameEl.value.trim(),email:emailEl.value.trim(),phone:phoneEl.value.trim(),password:passwordEl.value,refCode:refEl.value.trim()})});const x=await r.json();if(!r.ok){message.textContent=x.error||"Registration failed";return}localStorage.setItem("gitsUser",x.id);message.textContent="Account created successfully.";setTimeout(()=>location="/dashboard.html",500)}catch(e){message.textContent="Unable to connect to the server. Please try again."}});
+</script></body></html>
