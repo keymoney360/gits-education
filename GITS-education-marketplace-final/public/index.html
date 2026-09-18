@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GITS | Education Documents</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><b>GITS</b><nav><a href="/">Home</a><a href="/login.html">Login</a><a href="/register.html">Join</a></nav></header>
+<section class="hero"><h1>Education Resources at Your Fingertips</h1><p>Buy useful educational documents and access them digitally.</p><a class="btn" href="#products">Browse Documents</a></section>
+<main><h2 id="products">Featured Documents</h2><div id="list" class="grid"><p>Loading documents...</p></div></main>
+<script>
+const list=document.getElementById("list");
+async function loadProducts(){
+ try{
+  const response=await fetch("/api/products",{cache:"no-store"});
+  const products=await response.json();
+  if(!response.ok) throw new Error(products.error||"Could not load documents");
+  list.innerHTML=products.length ? products.map(p=>`
+   <article class="card"><h3>${p.name}</h3><p>${p.description||""}</p>
+   <strong>KSh ${Number(p.price||0).toLocaleString()}</strong><br>
+   <a class="btn small" href="/login.html">Purchase</a></article>`).join("")
+   : "<p>No documents are available yet.</p>";
+ }catch(e){list.innerHTML="<p>Unable to load documents right now. Please refresh and try again.</p>";}
+}
+loadProducts();
+</script></body></html>
