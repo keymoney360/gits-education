@@ -139,7 +139,28 @@ app.post("/api/admin/products",adminAuth,async(req,res)=>{try{
   res.json(await Product.create({name:req.body.name,description:req.body.description,price:Number(req.body.price),fileUrl:req.body.fileUrl||""}));
 }catch(e){res.status(400).json({error:e.message})}});
 app.put("/api/admin/products/:id",adminAuth,async(req,res)=>{try{
-  res.json(await Product.findByIdAndUpdate(req.params.id,{name:req.body.name,description:req.body.description,price:Number(req.body.price),fileUrl:req.body.fileUrl||"",active:req.body.active!==false},{new:true}));
+  const product=await Product.findById(req.params.id);
+  if(!product)return res.status(404).json({error:"Document not found"});
+  if(req.body.name!==undefined)product.name=String(req.body.name).trim();
+  if(req.body.description!==undefined)product.description=String(req.body.description);
+  if(req.body.price!==undefined){
+    const price=Number(req.body.price);
+    if(!Number.isFinite(price)||price<0)return res.status(400).json({error:"Enter a valid price"});
+    product.price=price;
+  }
+  if(req.body.fileUrl!==undefined)product.fileUrl=String(req.body.fileUrl);
+  if(req.body.active!==undefined)product.active=req.body.active!==false;
+  await product.save();
+  res.json(product);
+}catch(e){res.status(400).json({error:e.message})}});
+
+// Soft-delete a document so old purchase records remain intact. Deleted documents disappear from the customer site.
+app.delete("/api/admin/products/:id",adminAuth,async(req,res)=>{try{
+  const product=await Product.findById(req.params.id);
+  if(!product)return res.status(404).json({error:"Document not found"});
+  product.active=false;
+  await product.save();
+  res.json({message:"Document deleted from the customer site",product});
 }catch(e){res.status(400).json({error:e.message})}});
 
 // Admin dashboard statistics
