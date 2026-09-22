@@ -1,24 +1,30 @@
-GITS EDUCATION MARKETPLACE
+GITS EDUCATION MARKETPLACE - M-PESA REGISTRATION
 
-DEPLOYMENT:
-1. Upload the project to GitHub.
-2. Create a Render Web Service.
-3. Build command: npm install
-4. Start command: npm start
-5. Add environment variable:
-   MONGODB_URI = your MongoDB Atlas connection string
-6. Deploy.
+Registration payment:
+- Fee: KSh 300
+- Till: 1745713
+- Transaction type: CustomerBuyGoodsOnline
 
-PAGES:
-Customer: /
-Register: /register.html
-Login: /login.html
-Dashboard: /dashboard.html
-Admin: /admin
+NEW RENDER ENVIRONMENT VARIABLES
+Keep your existing:
+MONGODB_URI
+ADMIN_KEY
+
+Add:
+MPESA_ENV=sandbox
+MPESA_CONSUMER_KEY=YOUR_DARAJA_CONSUMER_KEY
+MPESA_CONSUMER_SECRET=YOUR_DARAJA_CONSUMER_SECRET
+MPESA_SHORTCODE=1745713
+MPESA_PASSKEY=YOUR_DARAJA_PASSKEY
+MPESA_CALLBACK_URL=https://gits-education.onrender.com/api/mpesa/callback
+
+Optional:
+DIRECT_REFERRAL_BONUS=50
+INDIRECT_REFERRAL_BONUS=30
 
 IMPORTANT:
-This starter includes a DEMO purchase endpoint for testing referral calculations.
-Real M-Pesa integration should be added before accepting real payments.
-The example commission is 16.67% of a product price (about KSh 50 on KSh 300).
-Do not use this as a recruitment-only payment scheme; commissions should be tied to genuine product sales.
-Passwords are stored plainly in this starter for simplicity and MUST be replaced with secure password hashing before production.
+1. Never put Consumer Secret or Passkey in frontend HTML.
+2. Sandbox testing uses Safaricom's sandbox credentials/test setup. A live Till cannot be treated as a sandbox payment destination simply by changing the number.
+3. For live payments, change MPESA_ENV to production and use the live credentials/production configuration provided by Safaricom after Go Live.
+4. The callback URL must be publicly reachable over HTTPS.
+5. The server only creates the user after the M-Pesa callback reports a successful KSh 300 transaction.
