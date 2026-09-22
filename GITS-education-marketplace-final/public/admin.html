@@ -12,7 +12,7 @@
 <button onclick="showPanel('dashboard')">Dashboard</button><button onclick="showPanel('documents')">Documents</button><button onclick="showPanel('payments')">Payments</button><button onclick="showPanel('users')">Users</button><button onclick="showPanel('commissions')">Commissions</button><button onclick="showPanel('payouts')">Payouts</button><button class="danger" onclick="logout()">Logout</button>
 </div>
 
-<section id="dashboard" class="panel active"><h1>Money & Sales Dashboard</h1><div id="stats" class="stat-grid"></div><div class="notice">The payment records currently use the project's demo payment endpoint. This admin records and manages payment information; live Safaricom M-Pesa API settlement still needs Daraja credentials and callback integration.</div></section>
+<section id="dashboard" class="panel active"><h1>Money & Sales Dashboard</h1><div id="stats" class="stat-grid"></div><div class="notice">Registration payment is configured for KSh 300 to Till 1745713. User accounts are created only after the M-Pesa callback confirms payment. Document purchases still use the existing demo purchase endpoint until a separate live checkout is connected.</div></section>
 
 <section id="documents" class="panel"><div class="card"><h1>Add Education Document</h1><form id="adminForm"><input id="productName" placeholder="Document name" required><textarea id="description" placeholder="Description"></textarea><input id="price" type="number" min="0" placeholder="Price" required><input id="fileUrl" placeholder="Secure download URL (optional)"><button type="submit">Add Document</button></form><p id="message"></p></div><h2>Documents</h2><div id="list"></div></section>
 
