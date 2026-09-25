@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Join GITS</title><link rel="stylesheet" href="style.css"></head>
 <body><main class="form"><h1>Create GITS Account</h1>
-<div class="card" style="margin-bottom:16px"><h2>Registration Fee: KSh 300</h2><p>Pay using M-Pesa to Till Number <strong>1745713</strong>. When you submit the form, GITS will send an M-Pesa prompt to the phone number you enter.</p><p class="muted">Your account is activated only after Safaricom confirms the KSh 300 payment.</p></div>
+<div class="card" style="margin-bottom:16px"><h2>Registration Fee: KSh 300</h2><p>Pay using M-Pesa to Till Number <strong>1745713</strong>. PayHero will send an M-Pesa prompt to the phone number you enter and route the payment to the registered Till.</p><p class="muted">Your account is activated only after Safaricom confirms the KSh 300 payment.</p></div>
 <form id="registerForm">
 <input id="name" placeholder="Full name" required>
 <input id="email" type="email" placeholder="Email" required>
@@ -15,14 +15,14 @@ const form=document.getElementById("registerForm"),nameEl=document.getElementByI
 refEl.value=new URLSearchParams(location.search).get("ref")||"";
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 form.addEventListener("submit",async e=>{
- e.preventDefault(); btn.disabled=true; message.textContent="Starting M-Pesa payment...";
+ e.preventDefault(); btn.disabled=true; message.textContent="Starting secure PayHero M-Pesa payment...";
  try{
   const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
    name:nameEl.value.trim(),email:emailEl.value.trim(),phone:phoneEl.value.trim(),password:passwordEl.value,refCode:refEl.value.trim()
   })});
   const x=await r.json();
   if(!r.ok){message.textContent=x.error||"Registration failed";btn.disabled=false;return}
-  message.textContent="M-Pesa prompt sent. Enter your PIN on your phone. Waiting for payment confirmation...";
+  message.textContent="M-Pesa prompt sent by PayHero. Enter your PIN on your phone. Waiting for payment confirmation...";
   for(let i=0;i<30;i++){
    await wait(3000);
    const sr=await fetch("/api/register/status/"+encodeURIComponent(x.registrationId),{cache:"no-store"});
@@ -33,7 +33,7 @@ form.addEventListener("submit",async e=>{
     setTimeout(()=>location="/dashboard.html",700); return;
    }
    if(s.status==="failed"){
-    message.textContent=s.resultDescription||"M-Pesa payment was not completed.";
+    message.textContent=s.resultDescription||"PayHero M-Pesa payment was not completed.";
     btn.disabled=false; return;
    }
   }
