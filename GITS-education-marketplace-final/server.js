@@ -10,12 +10,16 @@ const PORT = process.env.PORT || 10000;
 const uri = process.env.MONGODB_URI || "";
 const ADMIN_KEY = process.env.ADMIN_KEY || "";
 
-const MPESA_ENV = process.env.MPESA_ENV || "sandbox";
-const MPESA_CONSUMER_KEY = process.env.MPESA_CONSUMER_KEY || "";
-const MPESA_CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET || "";
-const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE || "1745713";
-const MPESA_PASSKEY = process.env.MPESA_PASSKEY || "";
-const MPESA_CALLBACK_URL = process.env.MPESA_CALLBACK_URL || "";
+// PayHero configuration. PayHero will send the M-Pesa STK Push while
+// routing the payment to the Till registered as this payment channel.
+const PAYHERO_BASE_URL = process.env.PAYHERO_BASE_URL || "https://backend.payhero.co.ke/api/v2";
+const PAYHERO_USERNAME = process.env.PAYHERO_USERNAME || "";
+const PAYHERO_PASSWORD = process.env.PAYHERO_PASSWORD || "";
+const PAYHERO_CHANNEL_ID = process.env.PAYHERO_CHANNEL_ID || "";
+const PAYHERO_ACCOUNT_ID = process.env.PAYHERO_ACCOUNT_ID || "";
+const PAYHERO_PROVIDER = process.env.PAYHERO_PROVIDER || "m-pesa";
+const PAYHERO_CALLBACK_URL = process.env.PAYHERO_CALLBACK_URL || "";
+const MPESA_TILL = process.env.MPESA_TILL || "1745713";
 const REGISTRATION_FEE = 300;
 const DIRECT_REFERRAL_BONUS = Number(process.env.DIRECT_REFERRAL_BONUS || 50);
 const INDIRECT_REFERRAL_BONUS = Number(process.env.INDIRECT_REFERRAL_BONUS || 30);
@@ -110,51 +114,41 @@ function normalizePhone(input){
   return /^2547\d{8}$/.test(p) ? p : null;
 }
 
-function mpesaBase(){
-  return MPESA_ENV === "production" ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke";
+function payHeroAuthHeader(){
+  if(!PAYHERO_USERNAME || !PAYHERO_PASSWORD)
+    throw new Error("PayHero username/password are not configured in Render.");
+  return "Basic " + Buffer.from(`${PAYHERO_USERNAME}:${PAYHERO_PASSWORD}`).toString("base64");
 }
 
-async function mpesaToken(){
-  if(!MPESA_CONSUMER_KEY || !MPESA_CONSUMER_SECRET)
-    throw new Error("M-Pesa Consumer Key/Secret are not configured in Render.");
-  const basic=Buffer.from(`${MPESA_CONSUMER_KEY}:${MPESA_CONSUMER_SECRET}`).toString("base64");
-  const r=await fetch(`${mpesaBase()}/oauth/v1/generate?grant_type=client_credentials`,{
-    headers:{Authorization:`Basic ${basic}`}
-  });
-  const data=await r.json().catch(()=>({}));
-  if(!r.ok || !data.access_token) throw new Error(data.errorMessage||"Could not get M-Pesa access token.");
-  return data.access_token;
-}
+async function initiatePayHeroRegistration(phone, registrationId){
+  if(!PAYHERO_CHANNEL_ID) throw new Error("PAYHERO_CHANNEL_ID is not configured in Render.");
+  if(!PAYHERO_ACCOUNT_ID) throw new Error("PAYHERO_ACCOUNT_ID is not configured in Render.");
+  if(!PAYHERO_CALLBACK_URL) throw new Error("PAYHERO_CALLBACK_URL is not configured in Render.");
 
-async function initiateMpesaRegistration(phone, registrationId){
-  if(!MPESA_PASSKEY) throw new Error("M-Pesa Passkey is not configured in Render.");
-  if(!MPESA_CALLBACK_URL) throw new Error("MPESA_CALLBACK_URL is not configured in Render.");
-  const token=await mpesaToken();
-  const timestamp=new Date().toLocaleString("sv-SE",{timeZone:"Africa/Nairobi"}).replace(/[-: ]/g,"").slice(0,14);
-  const password=Buffer.from(`${MPESA_SHORTCODE}${MPESA_PASSKEY}${timestamp}`).toString("base64");
+  const externalReference=`GITS-${String(registrationId)}`;
   const body={
-    BusinessShortCode:MPESA_SHORTCODE,
-    Password:password,
-    Timestamp:timestamp,
-    TransactionType:"CustomerBuyGoodsOnline",
-    Amount:REGISTRATION_FEE,
-    PartyA:phone,
-    PartyB:MPESA_SHORTCODE,
-    PhoneNumber:phone,
-    CallBackURL:MPESA_CALLBACK_URL,
-    AccountReference:`GITS${String(registrationId).slice(-8)}`,
-    TransactionDesc:"GITS Registration"
+    amount:REGISTRATION_FEE,
+    phone_number:phone,
+    provider:PAYHERO_PROVIDER,
+    channel_id:Number(PAYHERO_CHANNEL_ID),
+    account_id:Number(PAYHERO_ACCOUNT_ID),
+    external_reference:externalReference,
+    callback_url:PAYHERO_CALLBACK_URL
   };
-  const r=await fetch(`${mpesaBase()}/mpesa/stkpush/v1/processrequest`,{
+
+  const r=await fetch(`${PAYHERO_BASE_URL}/payments`,{
     method:"POST",
-    headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},
+    headers:{
+      Authorization:payHeroAuthHeader(),
+      "Content-Type":"application/json"
+    },
     body:JSON.stringify(body)
   });
   const data=await r.json().catch(()=>({}));
-  if(!r.ok || data.ResponseCode!=="0"){
-    throw new Error(data.errorMessage||data.ResponseDescription||"M-Pesa STK request failed.");
+  if(!r.ok){
+    throw new Error(data.message||data.error||data.errorMessage||"PayHero payment request failed.");
   }
-  return data;
+  return {data,externalReference};
 }
 
 async function finalizeRegistration(reg){
@@ -209,12 +203,17 @@ app.post("/api/register",async(req,res)=>{try{
     name:name.trim(),email:email.trim().toLowerCase(),phone:msisdn,password,refCode:ref?.refCode||null
   });
   try{
-    const stk=await initiateMpesaRegistration(msisdn,reg._id);
-    reg.checkoutRequestId=stk.CheckoutRequestID;
-    reg.merchantRequestId=stk.MerchantRequestID;
-    reg.resultDescription=stk.ResponseDescription||"STK Push sent";
+    const payment=await initiatePayHeroRegistration(msisdn,reg._id);
+    const stk=payment.data||{};
+    reg.checkoutRequestId=stk.CheckoutRequestID||stk.checkout_request_id||stk.request_id||stk.reference||"";
+    reg.merchantRequestId=stk.MerchantRequestID||stk.merchant_request_id||"";
+    reg.resultDescription=stk.message||stk.ResponseDescription||"PayHero STK Push sent";
     await reg.save();
-    res.json({registrationId:reg._id,message:"STK Push sent. Enter your M-Pesa PIN on your phone.",checkoutRequestId:stk.CheckoutRequestID});
+    res.json({
+      registrationId:reg._id,
+      message:"M-Pesa prompt sent. Enter your PIN on your phone.",
+      checkoutRequestId:reg.checkoutRequestId
+    });
   }catch(err){
     reg.status="failed";
     reg.resultDescription=err.message;
@@ -233,22 +232,22 @@ app.get("/api/register/status/:id",async(req,res)=>{try{
   res.json({status:reg.status,resultDescription:reg.resultDescription||"Waiting for M-Pesa confirmation."});
 }catch(e){res.status(500).json({error:e.message})}});
 
-/* Safaricom sends the STK result here. Only a successful callback activates the account. */
-app.post("/api/mpesa/callback",async(req,res)=>{
+/* PayHero sends the final payment result here. */
+app.post("/api/payhero/callback",async(req,res)=>{
+  // Acknowledge quickly; PayHero's callback is the source of truth.
   try{
-    const stk=req.body?.Body?.stkCallback;
-    if(!stk){
-      return res.json({ResultCode:0,ResultDesc:"Accepted"});
-    }
-    const reg=await Registration.findOne({checkoutRequestId:stk.CheckoutRequestID});
+    const cb=req.body||{};
+    const external=String(cb.external_reference||"");
+    const registrationId=external.startsWith("GITS-") ? external.slice(5) : "";
+    const reg=registrationId ? await Registration.findById(registrationId) : null;
+
     if(reg){
-      reg.resultCode=Number(stk.ResultCode);
-      reg.resultDescription=stk.ResultDesc||"";
-      if(Number(stk.ResultCode)===0){
-        const items=stk.CallbackMetadata?.Item||[];
-        const receipt=items.find(x=>x.Name==="MpesaReceiptNumber")?.Value;
-        const amount=Number(items.find(x=>x.Name==="Amount")?.Value||0);
-        reg.mpesaReceipt=receipt||"";
+      reg.resultDescription=cb.message||cb.status||"";
+      const providerReference=cb.provider_reference||cb.transaction_id||cb.reference||"";
+      if(providerReference) reg.mpesaReceipt=providerReference;
+
+      if(cb.status==="success" && cb.success===true){
+        const amount=Number(cb.amount||0);
         if(amount===REGISTRATION_FEE){
           await finalizeRegistration(reg);
         }else{
@@ -256,16 +255,17 @@ app.post("/api/mpesa/callback",async(req,res)=>{
           reg.resultDescription="Payment amount did not match the GITS registration fee.";
           await reg.save();
         }
-      }else{
+      }else if(cb.status==="failed" || cb.success===false){
         reg.status="failed";
+        await reg.save();
+      }else{
         await reg.save();
       }
     }
-    return res.json({ResultCode:0,ResultDesc:"Accepted"});
   }catch(e){
-    console.error("M-Pesa callback error:",e);
-    return res.json({ResultCode:0,ResultDesc:"Accepted"});
+    console.error("PayHero callback error:",e);
   }
+  return res.status(200).json({received:true});
 });
 
 app.post("/api/login",async(req,res)=>{
