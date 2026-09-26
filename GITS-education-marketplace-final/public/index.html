@@ -1,23 +1,18 @@
-<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GITS | Education Documents</title><link rel="stylesheet" href="style.css"></head>
-<body>
-<header><b>GITS</b><nav><a href="/">Home</a><a href="/login.html">Login</a><a href="/register.html">Join</a></nav></header>
-<section class="hero"><h1>Education Resources at Your Fingertips</h1><p>Buy useful educational documents and access them digitally.</p><a class="btn" href="#products">Browse Documents</a></section>
-<main><h2 id="products">Featured Documents</h2><div id="list" class="grid"><p>Loading documents...</p></div></main>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GITS | Education Documents</title><link rel="stylesheet" href="style.css"></head>
+<body><header><b>GITS</b><nav><a href="/">Home</a><a href="/login.html">Login</a><a href="/register.html">Join</a><a href="#cart">Cart <span id="cartCount">0</span></a></nav></header>
+<section class="hero"><h1>Education Resources at Your Fingertips</h1><p>Choose one or several educational ebooks, add them to your cart, then pay the full cart total through an M-Pesa STK Push.</p><a class="btn" href="#products">Browse Documents</a></section>
+<main><section id="cart" class="card cart-box"><div class="inline"><h2 style="margin-right:auto">Your Cart</h2><button class="small" onclick="clearCart()">Clear Cart</button></div><div id="cartItems"><p class="muted">Your cart is empty.</p></div><div class="cart-total"><strong>Total: <span id="cartTotal">KSh 0</span></strong></div><div id="checkoutArea"></div></section>
+<h2 id="products">Featured Documents</h2><div id="list" class="grid"><p>Loading documents...</p></div></main>
 <script>
-const list=document.getElementById("list");
-async function loadProducts(){
- try{
-  const response=await fetch("/api/products",{cache:"no-store"});
-  const products=await response.json();
-  if(!response.ok) throw new Error(products.error||"Could not load documents");
-  list.innerHTML=products.length ? products.map(p=>`
-   <article class="card"><h3>${p.name}</h3><p>${p.description||""}</p>
-   <strong>KSh ${Number(p.price||0).toLocaleString()}</strong><br>
-   <a class="btn small" href="/login.html">Purchase</a></article>`).join("")
-   : "<p>No documents are available yet.</p>";
- }catch(e){list.innerHTML="<p>Unable to load documents right now. Please refresh and try again.</p>";}
-}
+const list=document.getElementById("list"),cartItems=document.getElementById("cartItems"),cartTotal=document.getElementById("cartTotal"),cartCount=document.getElementById("cartCount"),checkoutArea=document.getElementById("checkoutArea");
+let products=[]; let cart=JSON.parse(localStorage.getItem("gitsCart")||"[]");
+const money=n=>"KSh "+Number(n||0).toLocaleString(); const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+function saveCart(){localStorage.setItem("gitsCart",JSON.stringify(cart));renderCart()}
+function addToCart(id){if(!cart.includes(id))cart.push(id);saveCart();location.hash="cart"}
+function removeFromCart(id){cart=cart.filter(x=>x!==id);saveCart()}
+function clearCart(){cart=[];saveCart()}
+function renderCart(){const selected=products.filter(p=>cart.includes(String(p._id)));cart=selected.map(p=>String(p._id));localStorage.setItem("gitsCart",JSON.stringify(cart));cartCount.textContent=cart.length;cartItems.innerHTML=selected.length?selected.map(p=>`<div class="cart-row"><div><strong>${esc(p.name)}</strong><div class="muted">${money(p.price)}</div></div><button class="small danger" onclick="removeFromCart('${p._id}')">Remove</button></div>`).join(""):"<p class='muted'>Your cart is empty. Select ebooks below.</p>";const total=selected.reduce((s,p)=>s+Number(p.price||0),0);cartTotal.textContent=money(total);if(!selected.length){checkoutArea.innerHTML="";return}const userId=localStorage.getItem("gitsUser");if(!userId){checkoutArea.innerHTML=`<div class="notice">Please <a href="/login.html">log in</a> or <a href="/register.html">create an account</a> before checkout.</div>`}else{checkoutArea.innerHTML=`<div class="checkout"><h3>Checkout</h3><p class="muted">Pay <strong>${money(total)}</strong> for ${selected.length} ebook(s) using M-Pesa STK Push.</p><input id="checkoutPhone" placeholder="M-Pesa phone number (e.g. 0712345678)"><button id="checkoutBtn" class="btn" onclick="checkout()">Pay ${money(total)} by M-Pesa</button><p id="checkoutMsg"></p></div>`}}
+async function checkout(){const btn=document.getElementById("checkoutBtn"),msg=document.getElementById("checkoutMsg"),phone=document.getElementById("checkoutPhone");btn.disabled=true;msg.textContent="Starting PayHero STK Push...";try{const r=await fetch("/api/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:localStorage.getItem("gitsUser"),phone:phone.value.trim(),productIds:cart})});const x=await r.json();if(!r.ok)throw new Error(x.error||"Checkout failed");msg.textContent="STK Push sent. Enter your M-Pesa PIN on your phone. Waiting for confirmation...";for(let i=0;i<40;i++){await new Promise(res=>setTimeout(res,3000));const sr=await fetch("/api/checkout/status/"+encodeURIComponent(x.orderId),{cache:"no-store"});const s=await sr.json();if(s.status==="paid"){msg.textContent="Payment confirmed. Your ebooks are now available in your dashboard.";cart=[];saveCart();setTimeout(()=>location="/dashboard.html",900);return}if(s.status==="failed"){msg.textContent=s.resultDescription||"Payment was not completed.";btn.disabled=false;return}}msg.textContent="Still waiting for confirmation. If you completed payment, check your dashboard shortly.";btn.disabled=false}catch(e){msg.textContent=e.message;btn.disabled=false}}
+async function loadProducts(){try{const response=await fetch("/api/products",{cache:"no-store"});products=await response.json();if(!response.ok)throw new Error(products.error||"Could not load documents");list.innerHTML=products.length?products.map(p=>`<article class="card"><h3>${esc(p.name)}</h3><p>${esc(p.description||"")}</p><strong>${money(p.price)}</strong><br><button class="btn small" onclick="addToCart('${p._id}')">${cart.includes(String(p._id))?'In Cart':'Add to Cart'}</button></article>`).join(""):"<p>No documents are available yet.</p>";renderCart()}catch(e){list.innerHTML="<p>Unable to load documents right now. Please refresh and try again.</p>"}}
 loadProducts();
 </script></body></html>
