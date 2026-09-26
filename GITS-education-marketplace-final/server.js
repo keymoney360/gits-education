@@ -141,16 +141,20 @@ async function initiatePayHeroSTK({phone,amount,externalReference}){
   const channelId=Number(PAYHERO_CHANNEL_ID);
   if(!Number.isInteger(channelId)) throw new Error("PAYHERO_CHANNEL_ID must be a number.");
 
+  const accountId=Number(PAYHERO_ACCOUNT_ID);
+  if(!Number.isInteger(accountId)) throw new Error("PAYHERO_ACCOUNT_ID must be a number.");
+
   const body={
     amount:Number(amount),
     phone_number:phone,
     provider:PAYHERO_PROVIDER,
     channel_id:channelId,
+    account_id:accountId,
     external_reference:externalReference,
     callback_url:PAYHERO_CALLBACK_URL
   };
 
-  const endpoint=`${PAYHERO_BASE_URL.replace(/\/$/,"")}/payments/initiate-stk-push`;
+  const endpoint=`${PAYHERO_BASE_URL.replace(/\/$/,"")}/payments`;
   const r=await fetch(endpoint,{
     method:"POST",
     headers:{Authorization:payHeroAuthHeader(),"Content-Type":"application/json"},
