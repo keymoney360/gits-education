@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 10000;
 const uri = process.env.MONGODB_URI || "";
 const ADMIN_KEY = process.env.ADMIN_KEY || "";
 
-const PAYHERO_BASE_URL = process.env.PAYHERO_BASE_URL || "https://backend.payhero.co.ke/api/v2";
+const PAYHERO_BASE_URL = process.env.PAYHERO_BASE_URL || "https://api.payhero.africa/api/v2";
 const PAYHERO_USERNAME = process.env.PAYHERO_USERNAME || "";
 const PAYHERO_PASSWORD = process.env.PAYHERO_PASSWORD || "";
 const PAYHERO_CHANNEL_ID = process.env.PAYHERO_CHANNEL_ID || "";
@@ -154,7 +154,12 @@ async function initiatePayHeroSTK({phone,amount,externalReference}){
     callback_url:PAYHERO_CALLBACK_URL
   };
 
-  const endpoint=`${PAYHERO_BASE_URL.replace(/\/$/,"")}/payments`;
+  // PayHero's current production API host is api.payhero.africa.
+  // If an old Render environment value is still present, transparently migrate it.
+  let base=PAYHERO_BASE_URL.replace(/\/$/,"");
+  base=base.replace("https://backend.payhero.co.ke/api/v2","https://api.payhero.africa/api/v2");
+  base=base.replace("https://backend.payhero.co.ke","https://api.payhero.africa");
+  const endpoint=`${base}/payments`;
   const r=await fetch(endpoint,{
     method:"POST",
     headers:{Authorization:payHeroAuthHeader(),"Content-Type":"application/json"},
@@ -163,7 +168,11 @@ async function initiatePayHeroSTK({phone,amount,externalReference}){
   const raw=await r.text();
   let data={};
   try{data=JSON.parse(raw)}catch{data={message:raw};}
-  if(!r.ok) throw new Error(data.message||data.error||data.errorMessage||`PayHero returned HTTP ${r.status}.`);
+  if(!r.ok){
+    const detail=String(data.message||data.error||data.errorMessage||raw||"No response body").slice(0,800);
+    console.error("PayHero request failed:", {status:r.status, endpoint, detail});
+    throw new Error(`PayHero returned HTTP ${r.status}: ${detail}`);
+  }
   return {data,externalReference};
 }
 
