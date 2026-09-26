@@ -1,56 +1,29 @@
-GITS EDUCATION MARKETPLACE - PAYHERO M-PESA REGISTRATION
+GITS Education Marketplace
 
-Registration payment:
-- Fee: KSh 300
-- M-Pesa Till: 1745713
-- Payment gateway: PayHero
-- PayHero sends the customer's M-Pesa STK Push and routes the money to the registered Till.
+PAYHERO + CART UPDATE
 
-RENDER ENVIRONMENT VARIABLES
+This version includes:
+- PayHero M-Pesa STK Push using the current initiate-stk-push endpoint.
+- Existing KSh 300 paid registration flow.
+- Multi-ebook shopping cart.
+- Checkout that totals all selected ebooks and sends ONE STK Push for the full amount.
+- PayHero callback processing that records each purchased ebook after successful payment.
+- Dashboard purchase list with ebook links when fileUrl is configured by admin.
 
-Keep your existing:
-MONGODB_URI
-ADMIN_KEY
-
-Remove the old Safaricom/Daraja variables:
-MPESA_ENV
-MPESA_CONSUMER_KEY
-MPESA_CONSUMER_SECRET
-MPESA_SHORTCODE
-MPESA_PASSKEY
-MPESA_CALLBACK_URL
-
-Add these PayHero variables:
+Render environment variables:
+MONGODB_URI=your MongoDB connection string
+ADMIN_KEY=your admin key
 PAYHERO_BASE_URL=https://backend.payhero.co.ke/api/v2
-PAYHERO_USERNAME=YOUR_PAYHERO_USERNAME
-PAYHERO_PASSWORD=YOUR_PAYHERO_PASSWORD
-PAYHERO_CHANNEL_ID=YOUR_REGISTERED_TILL_CHANNEL_ID
-PAYHERO_ACCOUNT_ID=YOUR_PAYHERO_ACCOUNT_ID
+PAYHERO_USERNAME=your PayHero API username
+PAYHERO_PASSWORD=your PayHero API password
+PAYHERO_CHANNEL_ID=your PayHero channel ID
+PAYHERO_ACCOUNT_ID=your PayHero account ID (kept for compatibility)
 PAYHERO_PROVIDER=m-pesa
 PAYHERO_CALLBACK_URL=https://gits-education.onrender.com/api/payhero/callback
-
-Optional:
 MPESA_TILL=1745713
-DIRECT_REFERRAL_BONUS=50
-INDIRECT_REFERRAL_BONUS=30
 
-IMPORTANT PAYHERO SETUP
-1. Create/verify your PayHero account.
-2. Register your M-Pesa Till 1745713 in PayHero as a payment channel.
-3. PayHero gives that registered channel its own numeric Channel ID. The Channel ID is NOT the same thing as the Till number.
-4. Get your PayHero API username/password and PayHero Account ID from your PayHero account/developer settings.
-5. Put those values in Render Environment exactly as shown above.
-6. Configure the callback URL in Render as:
-   https://gits-education.onrender.com/api/payhero/callback
-7. Deploy/redeploy after saving the variables.
-8. The website still asks the customer for their M-Pesa phone number, then PayHero triggers the STK Push.
-9. The website activates the GITS account only after PayHero's callback confirms a successful KSh 300 payment.
-
-SECURITY
-- Never put PayHero username/password in frontend HTML or JavaScript.
-- Never commit secrets to GitHub.
-- Keep the callback URL public HTTPS.
-- A successful API request only starts/accepts the payment. The callback is used as the payment confirmation.
-
-NOTE
-Using PayHero does NOT create a second Till. The same Till 1745713 can be the destination, provided that Till is registered and active as a payment channel in your PayHero account.
+Important:
+- Do not put quotes around environment variable values.
+- Keep PAYHERO_PASSWORD and ADMIN_KEY private.
+- The PayHero callback URL must be registered/allowed in the PayHero configuration if PayHero requires it.
+- Admin can set each ebook's fileUrl. After a successful payment, the purchased ebook appears in the customer's dashboard with an Open Ebook button.
