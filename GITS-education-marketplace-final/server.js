@@ -159,7 +159,7 @@ async function initiatePayHeroSTK({phone,amount,externalReference}){
   let base=PAYHERO_BASE_URL.replace(/\/$/,"");
   base=base.replace("https://backend.payhero.co.ke/api/v2","https://api.payhero.africa/api/v2");
   base=base.replace("https://backend.payhero.co.ke","https://api.payhero.africa");
-  const endpoint=`${base}/payments`;
+  const endpoint=`${base}/payments/initiate-stk-push`;
   const r=await fetch(endpoint,{
     method:"POST",
     headers:{Authorization:payHeroAuthHeader(),"Content-Type":"application/json"},

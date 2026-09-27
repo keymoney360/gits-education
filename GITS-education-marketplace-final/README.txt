@@ -1,7 +1,7 @@
 GITS EDUCATION - PAYHERO + MULTI-EBOOK CART
 
 This version uses PayHero's Kenya Collections endpoint for M-Pesa STK Push:
-POST https://backend.payhero.co.ke/api/v2/payments
+POST https://backend.payhero.co.ke/api/v2/payments/initiate-stk-push
 
 Features:
 - PayHero M-Pesa STK Push to Till 1745713 via the configured channel_id.
