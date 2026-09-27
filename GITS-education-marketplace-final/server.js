@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 10000;
 const uri = process.env.MONGODB_URI || "";
 const ADMIN_KEY = process.env.ADMIN_KEY || "";
 
-const PAYHERO_BASE_URL = process.env.PAYHERO_BASE_URL || "https://api.payhero.africa/api/v2";
+const PAYHERO_BASE_URL = process.env.PAYHERO_BASE_URL || "https://backend.payhero.co.ke/api/v2";
 const PAYHERO_USERNAME = process.env.PAYHERO_USERNAME || "";
 const PAYHERO_PASSWORD = process.env.PAYHERO_PASSWORD || "";
 const PAYHERO_CHANNEL_ID = process.env.PAYHERO_CHANNEL_ID || "";
@@ -154,11 +154,9 @@ async function initiatePayHeroSTK({phone,amount,externalReference}){
     callback_url:PAYHERO_CALLBACK_URL
   };
 
-  // PayHero's current production API host is api.payhero.africa.
-  // If an old Render environment value is still present, transparently migrate it.
-  let base=PAYHERO_BASE_URL.replace(/\/$/,"");
-  base=base.replace("https://backend.payhero.co.ke/api/v2","https://api.payhero.africa/api/v2");
-  base=base.replace("https://backend.payhero.co.ke","https://api.payhero.africa");
+  // PayHero STK Push endpoint.
+  // Keep the configured PayHero host unchanged.
+  const base=PAYHERO_BASE_URL.replace(/\/$/,"");
   const endpoint=`${base}/payments/initiate-stk-push`;
   const r=await fetch(endpoint,{
     method:"POST",
